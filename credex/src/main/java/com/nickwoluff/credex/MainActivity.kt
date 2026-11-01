@@ -1229,13 +1229,16 @@ open class MainActivity : ComponentActivity() {
         if (uiStyle == UiStyle.MIUIX) {
             // MiuixButton 只提供 Miuix 自己的 LocalContentColor，Compose 的 Text 读的是
             // Material 的 LocalContentColor，会继承弹窗 Surface 的 onSurface（黑字）。
-            // 主按钮是蓝底，这里显式给白字，避免出现黑字压蓝底。
-            CompositionLocalProvider(LocalContentColor provides Color.White) {
+            // 使用 Miuix 的语义色，同时保留其 disabledContentColor。
+            val colors = MiuixButtonDefaults.buttonColorsPrimary()
+            CompositionLocalProvider(
+                LocalContentColor provides if (enabled) colors.contentColor else colors.disabledContentColor
+            ) {
                 MiuixButton(
                     onClick = onClick,
                     modifier = modifier,
                     enabled = enabled,
-                    colors = MiuixButtonDefaults.buttonColorsPrimary(contentColor = Color.White),
+                    colors = colors,
                     content = content,
                 )
             }
@@ -4091,7 +4094,7 @@ open class MainActivity : ComponentActivity() {
         StyleAlertDialog(
             title = "保持背屏配额为最新",
             summary = "持续同步会显示一条低优先级常驻通知，让 Android 保持服务运行。它不会用于营销，并可随时在设置中关闭。",
-            onDismissRequest = { showNotificationEducation = false },
+            onDismissRequest = ::declineNotificationSync,
             body = {},
             confirmButton = {
                 AppButton(onClick = {
@@ -4100,8 +4103,22 @@ open class MainActivity : ComponentActivity() {
                     else QuotaForegroundService.start(this@MainActivity)
                 }, modifier = Modifier.fillMaxWidth()) { Text("继续") }
             },
-            dismissButton = { AppTextButton(text = "暂不", onClick = { showNotificationEducation = false }, modifier = Modifier.fillMaxWidth()) },
+            dismissButton = {
+                AppTextButton(
+                    text = "暂不",
+                    onClick = ::declineNotificationSync,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
         )
+    }
+
+    private fun declineNotificationSync() {
+        showNotificationEducation = false
+        notificationSyncEnabled = false
+        QuotaRepository.setNotificationSyncEnabled(this, false)
+        QuotaForegroundService.stop(this)
+        serviceRunning = false
     }
 
     @Composable
@@ -4171,8 +4188,17 @@ open class MainActivity : ComponentActivity() {
         if (notificationGranted) {
             QuotaForegroundService.start(this)
         } else if (!RearDisplayDevice.isSupported()) {
-            // 背屏教育弹窗只对背屏机型有意义；其他机型在用户主动开启常驻通知时直接请求系统权限。
-            if (forceEducation) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            // 背屏教育弹窗只对背屏机型有意义；其他机型在首次接入或用户主动开启时
+            // 直接请求系统权限。拒绝后由 permission launcher 回滚开关。
+            if (shouldRequestNotificationPermission(
+                    rearDisplaySupported = false,
+                    forceEducation = forceEducation,
+                    educationSeen = QuotaRepository.notificationEducationSeen(this),
+                )
+            ) {
+                QuotaRepository.markNotificationEducationSeen(this)
+                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
         } else if (forceEducation || !QuotaRepository.notificationEducationSeen(this)) {
             QuotaRepository.markNotificationEducationSeen(this)
             showNotificationEducation = true
@@ -4622,5 +4648,11 @@ class ReferencesActivity : MainActivity()
 class HelpActivity : MainActivity()
 
 class DisclaimerActivity : MainActivity()
+
+internal fun shouldRequestNotificationPermission(
+    rearDisplaySupported: Boolean,
+    forceEducation: Boolean,
+    educationSeen: Boolean,
+): Boolean = !rearDisplaySupported && (forceEducation || !educationSeen)
 
 class ServiceConfigurationActivity : MainActivity()
