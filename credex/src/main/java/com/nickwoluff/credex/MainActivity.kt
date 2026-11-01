@@ -512,11 +512,26 @@ open class MainActivity : ComponentActivity() {
         }
     }
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted && notificationSyncEnabled && backgroundEnabled) {
-            QuotaForegroundService.start(this)
-            message = "持续同步正在启动"
+        if (granted) {
+            if (notificationSyncEnabled && backgroundEnabled) {
+                QuotaForegroundService.start(this)
+                message = "持续同步正在启动"
+            }
         } else {
-            message = "未授予通知权限；智能后台刷新仍然可用"
+            // 拒绝后回滚「常驻通知」，等用户下次手动开启时再请求，避免开关显示已开启却没有服务。
+            notificationSyncEnabled = false
+            QuotaRepository.setNotificationSyncEnabled(this, false)
+            QuotaForegroundService.stop(this)
+            serviceRunning = false
+            val canAskAgain = Build.VERSION.SDK_INT < 33 ||
+                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
+            val hint = if (canAskAgain) {
+                "未授予通知权限；后台仍会用系统定时任务刷新"
+            } else {
+                "通知权限已被系统关闭，请到系统设置中允许"
+            }
+            message = hint
+            Toast.makeText(this, hint, Toast.LENGTH_SHORT).show()
         }
     }
     private val secondaryPageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -1815,8 +1830,9 @@ open class MainActivity : ComponentActivity() {
                                 )
                             }
                             AppLinearProgress(progress = progress, modifier = Modifier.fillMaxWidth().height(5.dp).clip(CircleShape))
-                            if (window.resetAt.isNotBlank()) {
-                                Text("重置于 ${window.resetAt}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            val resetLabel = QuotaResetText.planWindow(window.resetAt)
+                            if (resetLabel.isNotBlank()) {
+                                Text("重置于 $resetLabel", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                         Text(service.status, style = MaterialTheme.typography.bodySmall, color = statusColor)
@@ -2336,13 +2352,15 @@ open class MainActivity : ComponentActivity() {
                 )
             }
 
-            SettingsSection("背屏") {
-                SettingsActionRow(
-                    icon = { Icon(Icons.Filled.Visibility, contentDescription = null) },
-                    title = "背屏配置",
-                    subtitle = "背屏服务配置",
-                    onClick = { openActivityPage(ActivityPage.REAR_DISPLAY_SETTINGS) },
-                )
+            if (RearDisplayDevice.isSupported()) {
+                SettingsSection("背屏") {
+                    SettingsActionRow(
+                        icon = { Icon(Icons.Filled.Visibility, contentDescription = null) },
+                        title = "背屏配置",
+                        subtitle = "背屏服务配置",
+                        onClick = { openActivityPage(ActivityPage.REAR_DISPLAY_SETTINGS) },
+                    )
+                }
             }
 
             SettingsSection("个性化") {
@@ -4146,6 +4164,9 @@ open class MainActivity : ComponentActivity() {
         val notificationGranted = Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         if (notificationGranted) {
             QuotaForegroundService.start(this)
+        } else if (!RearDisplayDevice.isSupported()) {
+            // 背屏教育弹窗只对背屏机型有意义；其他机型在用户主动开启常驻通知时直接请求系统权限。
+            if (forceEducation) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else if (forceEducation || !QuotaRepository.notificationEducationSeen(this)) {
             QuotaRepository.markNotificationEducationSeen(this)
             showNotificationEducation = true
