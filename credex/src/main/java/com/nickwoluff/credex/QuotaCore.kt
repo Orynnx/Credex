@@ -86,6 +86,36 @@ internal object QuotaResetText {
         return compactCountdown(resetAtEpoch, nowEpoch) ?: reset
     }
 
+    /**
+     * 计划类配额接口（OpenCode Go 的 resetsAt、火山引擎的 ResetTime）返回 ISO-8601 UTC 字符串，
+     * GLM Coding Plan 的 nextResetTime 则直接是 Unix 毫秒。先统一成本地「MM-dd HH:mm」，
+     * 再复用统一的倒计时格式；解析不了的字符串原样保留；零值时间（1970-01-01）、公元 1 年
+     * 和毫秒 0 这类哨兵值返回空串，由调用方整行隐藏。
+     */
+    fun planWindow(
+        resetAt: String,
+        nowEpoch: Long = Instant.now().epochSecond,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): String {
+        val raw = resetAt.trim()
+        if (raw.isEmpty()) return ""
+        val epoch = parseResetEpoch(raw) ?: return raw
+        if (epoch <= 0L) return ""
+        val local = DateTimeFormatter.ofPattern("MM-dd HH:mm").withZone(zone).format(Instant.ofEpochSecond(epoch))
+        return app(local, epoch, nowEpoch)
+    }
+
+    private fun parseResetEpoch(raw: String): Long? {
+        runCatching { Instant.parse(raw).epochSecond }.getOrNull()?.let { return it }
+        // 13 位纯数字按 Unix 毫秒处理（GLM 的 nextResetTime），避免卡片直接显示 "1779792169974"。
+        val millis = raw.toLongOrNull() ?: return null
+        return when {
+            millis <= 0L -> 0L
+            millis >= 1_000_000_000_000L -> millis / 1000L
+            else -> null
+        }
+    }
+
     private fun withCountdown(reset: String, resetAtEpoch: Long, nowEpoch: Long): String {
         val countdown = countdown(resetAtEpoch, nowEpoch) ?: return reset
         return "$reset · $countdown"
