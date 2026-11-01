@@ -1246,7 +1246,9 @@ open class MainActivity : ComponentActivity() {
                 enabled = enabled,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White,
+                    // Material 3 深色主题的 primary 是浅色，必须用 onPrimary 深色字，
+                    // 写死白色会出现「浅蓝底白字」的低对比度。
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
                 content = content,
             )
@@ -1322,7 +1324,7 @@ open class MainActivity : ComponentActivity() {
                 enabled = enabled,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = Color.White,
+                    contentColor = MaterialTheme.colorScheme.onError,
                 ),
             ) { Text(text) }
         }
@@ -1344,7 +1346,7 @@ open class MainActivity : ComponentActivity() {
                 modifier = modifier,
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = Color.White,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             )
         }
@@ -3707,7 +3709,6 @@ open class MainActivity : ComponentActivity() {
                                 balanceAuthMode.usesBrowserLogin() -> "保存并登录"
                                 else -> "保存"
                             },
-                            color = Color.White,
                         )
                     }
                 }
