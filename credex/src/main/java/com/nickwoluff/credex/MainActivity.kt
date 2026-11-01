@@ -1227,13 +1227,18 @@ open class MainActivity : ComponentActivity() {
         content: @Composable RowScope.() -> Unit,
     ) {
         if (uiStyle == UiStyle.MIUIX) {
-            MiuixButton(
-                onClick = onClick,
-                modifier = modifier,
-                enabled = enabled,
-                colors = MiuixButtonDefaults.buttonColorsPrimary(contentColor = Color.White),
-                content = content,
-            )
+            // MiuixButton 只提供 Miuix 自己的 LocalContentColor，Compose 的 Text 读的是
+            // Material 的 LocalContentColor，会继承弹窗 Surface 的 onSurface（黑字）。
+            // 主按钮是蓝底，这里显式给白字，避免出现黑字压蓝底。
+            CompositionLocalProvider(LocalContentColor provides Color.White) {
+                MiuixButton(
+                    onClick = onClick,
+                    modifier = modifier,
+                    enabled = enabled,
+                    colors = MiuixButtonDefaults.buttonColorsPrimary(contentColor = Color.White),
+                    content = content,
+                )
+            }
         } else {
             Button(
                 onClick = onClick,
