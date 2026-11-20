@@ -4,17 +4,16 @@ Credex 是一款面向移动端的服务余额与配额查看工具。它可将�
 
 ## 仓库定位与版本
 
-本仓库是 Credex 的原始源码仓库，目前用于协作开发与同步 [NickWoluff/Credex](https://github.com/NickWoluff/Credex) 的改进。NickWoluff/Credex 是本仓库的 fork，当前 1.1.6 安装包由其发布，本仓库不重复发行相同版本。
+本仓库是 Credex 的原始源码仓库，目前用于协作开发与同步 [NickWoluff/Credex](https://github.com/NickWoluff/Credex) 的改进。NickWoluff/Credex 是本仓库的 fork，新版 APK 由其发布，本仓库不重复发行相同版本。
 
 2026-10-04 合并 [PR #3](https://github.com/Orynnx/Credex/pull/3) 后，应用版本为 **1.1.6**，应用源码与 NickWoluff/Credex 的 `3515708712f6836d2d35e557f0874a3de3d9cbdc` 对齐。
 
 ## 下载与安装
 
-- **当前 1.1.6 APK**：[Credex-v1.1.6-NW.apk](https://github.com/NickWoluff/Credex/releases/download/v1.1.6/Credex-v1.1.6-NW.apk)（[版本说明](https://github.com/NickWoluff/Credex/releases/tag/v1.1.6)）。
-- **后续版本**：查看 [NickWoluff/Credex Releases](https://github.com/NickWoluff/Credex/releases)。
-- **可选背屏资源**：[RearDisplayResources.zip](https://github.com/NickWoluff/Credex/releases/download/v1.1.0/RearDisplayResources.zip)。资源包独立于 APK，沿用 v1.1.0 附件入口；它不是 1.1.6 APK。
+- **最新 APK**：前往 [NickWoluff/Credex 最新发布页](https://github.com/NickWoluff/Credex/releases/latest)，在 Assets 中选择 APK 下载。
+- **可选背屏资源**：[RearDisplayResources.zip](https://github.com/NickWoluff/Credex/releases/download/v1.1.0/RearDisplayResources.zip)。资源包独立于 APK，沿用 v1.1.0 附件入口。
 
-> 本仓库 Releases 中的 **v0.10.0、v0.9.0 均为历史版本**，其中的 Codex quota companion/debug APK 和早期背屏资源不代表当前 1.1.6。安装当前应用请使用上面的下载入口。
+> 本仓库 Releases 中的 **v0.10.0、v0.9.0 均为历史版本**，其中的 Codex quota companion/debug APK 和早期背屏资源不代表当前版本。安装最新版请使用上面的下载入口。
 
 ## 功能
 
